@@ -1,55 +1,117 @@
 import os
-from pypdf import PdfMerger
+from pypdf import PdfReader, PdfWriter
 
-def merge_pdfs_in_folder(folder_path: str, output_folder_base: str):
-    # Get the name of the folder to use as the output PDF name
-    folder_name = os.path.basename(folder_path.rstrip("/\\"))
-    
-    # Create the output folder path mirroring the original structure
-    relative_path = os.path.relpath(folder_path, start=parent_directory)
-    output_folder_path = os.path.join(output_folder_base, relative_path)
-    os.makedirs(output_folder_path, exist_ok=True)
+# def merge_pdfs_by_hierarchy(base_dir):
+#     # Define the categories and order
+#     categories = ["Multiple Choice Questions", "Theory Questions", "Alternative to Practical Questions"]
+#     difficulty_order = ["easy.pdf", "medium.pdf", "hard.pdf"]
 
-    output_pdf_path = os.path.join(output_folder_path, f"{folder_name}.pdf")
-    
-    # Initialize the PdfMerger object
-    merger = PdfMerger()
+#     # Traverse the directory structure
+#     for root, dirs, files in os.walk(base_dir):
 
-    # Define the order of PDFs
-    merge_order = ["easy.pdf", "medium.pdf", "hard.pdf"]
+#         if root.count(os.sep) == base_dir.count(os.sep) + 2:
+#             # Initialize a dictionary to hold PDFs by category
 
-    # Loop through the defined order and merge if the file exists
-    for pdf_name in merge_order:
-        file_path = os.path.join(folder_path, pdf_name)
-        if os.path.exists(file_path):
-            merger.append(file_path)
+#             pdf_writer = PdfWriter()
 
-    # Write the merged PDF to the output file
-    with open(output_pdf_path, 'wb') as output_file:
-        merger.write(output_file)
+#             if root.count(os.sep) == base_dir.count(os.sep) + 4:
+#                 pdf_dict = {category: [] for category in categories}
+#                 for file in files:
+#                     if file.lower() in difficulty_order:
+#                         # Determine the category from the folder name
+#                         for category in categories:
+#                             if category in subdir_root:
+#                                 pdf_path = os.path.join(subdir_root, file)
+#                                 pdf_dict[category].append(pdf_path)
+#                                 break
+                    
+#                 for category in categories:
+#                     if pdf_dict[category]:
+#                         sorted_pdfs = sorted(
+#                             pdf_dict[category],
+#                             key=lambda f: difficulty_order.index(os.path.basename(f).lower())
+#                         )
+#                         for pdf_path in sorted_pdfs:
+#                             try:
+#                                 pdf_reader = PdfReader(pdf_path)
+#                                 if len(pdf_reader.pages) > 0:
+#                                     for page in pdf_reader.pages:
+#                                         pdf_writer.add_page(page)
+#                             except Exception as e:
+#                                 print(f"Error reading {pdf_path}: {e}")
 
-    # Close the merger
-    merger.close()
+#             if len(pdf_writer.pages) > 0:
+#                 # Create output path for the merged PDF in the Level 2 folder
+#                 level_2_folder = os.path.basename(root)
+#                 output_pdf_path = os.path.join(root, f"{level_2_folder}_merged.pdf")
+                
+#                 # Write the merged PDF
+#                 try:
+#                     with open(output_pdf_path, 'wb') as output_pdf:
+#                         pdf_writer.write(output_pdf)
+#                     print(f'Merged PDF saved as: {output_pdf_path}')
+#                 except Exception as e:
+#                     print(f"Error saving merged PDF to {output_pdf_path}: {e}")
+#             else:
+#                 print(f"No valid PDFs found in {root}")
 
-    print(f"Merged PDF created: {output_pdf_path}")
+# Define base directory
 
-# Specify the parent directory containing all folders and the output directory
-parent_directory = "./output_files"
-output_directory = os.path.join(parent_directory, "booklets")
+def my_pdf_merge(base_dir):
 
-# Function to get the folder at the 4th level
-def get_4th_level_folders(base_path):
-    fourth_level_folders = []
-    for root, dirs, _ in os.walk(base_path):
-        # Count the level based on the number of directory separators in the path
-        if root[len(base_path):].count(os.sep) == 3:  # 3 separators indicate the 4th level
-            for dir_name in dirs:
-                fourth_level_folders.append(os.path.join(root, dir_name))
-    return fourth_level_folders
+    categories = ["Multiple Choice Questions", "Theory Questions", "Alternative to Practical Questions"]
+    difficulty_order = ["easy.pdf", "medium.pdf", "hard.pdf"]
 
-# Get all 4th level folders
-fourth_level_folders = get_4th_level_folders(parent_directory)
+    for root, dir, files in os.walk(base_dir):
+        if root.count(os.sep) == base_dir.count(os.sep) + 2:
+            pdf_writer = PdfWriter()
+            for root2, dir, files2 in os.walk(root):
+                if root2.count(os.sep) == base_dir.count(os.sep) + 4:
+                    pdf_dict = {category: [] for category in categories}
 
-# Merge PDFs in each 4th-level folder and save to the mirrored directory structure
-for folder in fourth_level_folders:
-    merge_pdfs_in_folder(folder, output_directory)
+                    for root3, dir, files3 in os.walk(root2):
+                        if root3.count(os.sep) == base_dir.count(os.sep) + 5:
+                            for file in files3:
+                                if file.lower() in difficulty_order:
+                                    # Determine the category from the folder name
+                                    for category in categories:
+                                        if category in root3:
+                                            pdf_path = os.path.join(root3, file)
+                                            pdf_dict[category].append(pdf_path)
+                                            break
+                    
+                    for category in categories:
+                        if pdf_dict[category]:
+                            sorted_pdfs = sorted(
+                                pdf_dict[category],
+                                key=lambda f: difficulty_order.index(os.path.basename(f).lower())
+                            )
+
+                            for pdf_path in sorted_pdfs:
+                                try:
+                                    pdf_reader = PdfReader(pdf_path)
+                                    if len(pdf_reader.pages) > 0:
+                                        for page in pdf_reader.pages:
+                                            pdf_writer.add_page(page)
+                                except Exception as e:
+                                    print(f"Error reading {pdf_path}: {e}")
+
+            if len(pdf_writer.pages) > 0:
+                # Create output path for the merged PDF in the Level 2 folder
+                level_2_folder = os.path.basename(root)
+                output_pdf_path = os.path.join(root, f"{level_2_folder}_merged.pdf")
+                
+                # Write the merged PDF
+                try:
+                    with open(output_pdf_path, 'wb') as output_pdf:
+                        pdf_writer.write(output_pdf)
+                    print(f'Merged PDF saved as: {output_pdf_path}')
+                except Exception as e:
+                    print(f"Error saving merged PDF to {output_pdf_path}: {e}")
+            else:
+                print(f"No valid PDFs found in {root}")      
+
+
+base_dir = r'C:\Users\hungk\OneDrive\Documents\Code\Python\Cambridge-PDF-Merger\output_files'  # Use raw string to handle Windows paths
+my_pdf_merge(base_dir)
+# Run the merging function
